@@ -2,6 +2,8 @@
 
 Interactive CLI for GitHub repository setup — branch protection, auto-delete, Dependabot & more.
 
+![gh-setup preview](gh-setup-preview.gif)
+
 ## Install
 
 ```bash
