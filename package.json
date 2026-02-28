@@ -1,0 +1,36 @@
+{
+  "name": "gh-setup",
+  "version": "0.1.0",
+  "description": "Interactive GitHub repository setup CLI — branch protection, auto-delete, Dependabot & more",
+  "type": "module",
+  "bin": {
+    "gh-setup": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "keywords": [
+    "github",
+    "cli",
+    "branch-protection",
+    "repository-setup",
+    "dependabot"
+  ],
+  "author": "ynamiki",
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@clack/prompts": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
