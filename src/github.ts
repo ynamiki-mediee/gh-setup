@@ -4,6 +4,7 @@ async function ghApi(
   method: string,
   endpoint: string,
   body?: object,
+  options?: { paginate?: boolean },
 ): Promise<string> {
   const args = [
     "api",
@@ -13,6 +14,10 @@ async function ghApi(
     "Accept: application/vnd.github+json",
     endpoint,
   ];
+
+  if (options?.paginate) {
+    args.splice(1, 0, "--paginate");
+  }
 
   if (body) {
     args.push("--input", "-");
@@ -157,4 +162,95 @@ export async function enableSecretScanningPushProtection(
       secret_scanning_push_protection: { status: "enabled" },
     },
   });
+}
+
+// --- Milestone Types & API ---
+
+export interface Milestone {
+  number: number;
+  title: string;
+  description: string | null;
+  due_on: string | null;
+  state: string;
+}
+
+export async function listMilestones(repo: string): Promise<Milestone[]> {
+  const result = await ghApi(
+    "GET",
+    `/repos/${repo}/milestones?state=all&per_page=100`,
+    undefined,
+    { paginate: true },
+  );
+  return JSON.parse(result);
+}
+
+export async function createMilestone(
+  repo: string,
+  title: string,
+  description: string,
+  dueOn: string,
+): Promise<void> {
+  await ghApi("POST", `/repos/${repo}/milestones`, {
+    title,
+    description,
+    due_on: dueOn,
+  });
+}
+
+export async function updateMilestone(
+  repo: string,
+  number: number,
+  title: string,
+  description: string,
+): Promise<void> {
+  await ghApi("PATCH", `/repos/${repo}/milestones/${number}`, {
+    title,
+    description,
+  });
+}
+
+// --- Label Types & API ---
+
+export interface Label {
+  name: string;
+  color: string;
+  description: string | null;
+}
+
+export async function listLabels(repo: string): Promise<Label[]> {
+  const result = await ghApi(
+    "GET",
+    `/repos/${repo}/labels?per_page=100`,
+    undefined,
+    { paginate: true },
+  );
+  return JSON.parse(result);
+}
+
+export async function createLabel(
+  repo: string,
+  name: string,
+  color: string,
+  description: string,
+): Promise<void> {
+  await ghApi("POST", `/repos/${repo}/labels`, { name, color, description });
+}
+
+export async function updateLabel(
+  repo: string,
+  name: string,
+  color: string,
+  description: string,
+): Promise<void> {
+  await ghApi("PATCH", `/repos/${repo}/labels/${encodeURIComponent(name)}`, {
+    color,
+    description,
+  });
+}
+
+export async function deleteLabel(
+  repo: string,
+  name: string,
+): Promise<void> {
+  await ghApi("DELETE", `/repos/${repo}/labels/${encodeURIComponent(name)}`);
 }

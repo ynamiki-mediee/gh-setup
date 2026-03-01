@@ -1,5 +1,5 @@
 import * as p from "@clack/prompts";
-import { preflight } from "./preflight.js";
+import { preflight } from "./preflight.ts";
 import {
   getRepoInfo,
   updateBranchProtection,
@@ -11,7 +11,7 @@ import {
   type BranchProtectionSettings,
   type RepoSettings,
   type SecuritySettings,
-} from "./github.js";
+} from "./github.ts";
 
 type BranchProtectionOption =
   | "blockDirectPushes"
@@ -34,8 +34,8 @@ type SecurityOption =
   | "secretScanning"
   | "secretScanningPushProtection";
 
-export async function main(): Promise<void> {
-  p.intro("gh-setup");
+export async function init(): Promise<void> {
+  p.intro("gh-setup init");
 
   // Step 1: Preflight checks & repo confirmation
   const preflightResult = await preflight();

@@ -1,7 +1,7 @@
 {
   "name": "gh-setup",
-  "version": "0.1.0",
-  "description": "Interactive GitHub repository setup CLI — branch protection, auto-delete, Dependabot & more",
+  "version": "0.2.0",
+  "description": "Interactive GitHub repository setup CLI — branch protection, milestones, labels & more",
   "type": "module",
   "bin": {
     "gh-setup": "dist/index.js"
@@ -18,6 +18,8 @@
     "cli",
     "branch-protection",
     "repository-setup",
+    "milestones",
+    "labels",
     "dependabot"
   ],
   "author": "ynamiki",
@@ -26,7 +28,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@clack/prompts": "^1.0.1"
+    "@clack/prompts": "^1.0.1",
+    "yaml": "^2.7.1"
   },
   "devDependencies": {
     "@types/node": "^25.3.2",
