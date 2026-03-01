@@ -20,9 +20,9 @@ function formatDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function nextSunday(): string {
+function nextMonday(): string {
   const d = new Date();
-  const daysUntil = (7 - d.getDay()) % 7 || 7;
+  const daysUntil = (8 - d.getDay()) % 7 || 7;
   return formatDate(addDays(d, daysUntil));
 }
 
@@ -35,10 +35,10 @@ function weeksUntilEndOfYear(startDate: string): number {
   return Math.max(1, Math.ceil(diffDays / 7));
 }
 
-function sundayWeekOfYear(date: Date): number {
+function mondayWeekOfYear(date: Date): number {
   const jan1 = new Date(date.getFullYear(), 0, 1);
-  const firstSunday = addDays(jan1, (7 - jan1.getDay()) % 7);
-  const diffMs = date.getTime() - firstSunday.getTime();
+  const firstMonday = addDays(jan1, (8 - jan1.getDay()) % 7);
+  const diffMs = date.getTime() - firstMonday.getTime();
   return Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1;
 }
 
@@ -82,8 +82,8 @@ export async function milestones(): Promise<void> {
     );
   } else {
     const startDateInput = await p.text({
-      message: "Start date (first Sunday, YYYY-MM-DD):",
-      initialValue: nextSunday(),
+      message: "Start date (first Monday, YYYY-MM-DD):",
+      initialValue: nextMonday(),
       validate: (v) =>
         v && /^\d{4}-\d{2}-\d{2}$/.test(v)
           ? undefined
@@ -129,7 +129,7 @@ export async function milestones(): Promise<void> {
       timezoneOptions.find((o) => o.value === systemTz)?.value ?? "UTC";
 
     const tzInput = await p.select({
-      message: "Timezone for due dates (Saturday 23:59:59):",
+      message: "Timezone for due dates (Sunday 23:59:59):",
       options: timezoneOptions,
       initialValue: defaultTz,
     });
@@ -189,8 +189,8 @@ export async function milestones(): Promise<void> {
 
   for (let i = 0; i < weeks; i++) {
     const weekStart = addDays(new Date(startDate + "T00:00:00"), i * 7);
-    const weekEnd = addDays(weekStart, 6); // Saturday
-    const weekNum = sundayWeekOfYear(weekStart);
+    const weekEnd = addDays(weekStart, 6); // Sunday
+    const weekNum = mondayWeekOfYear(weekStart);
     const endDateStr = formatDate(weekEnd);
     const title = `Week ${weekNum}: ${endDateStr}`;
     const description = `Period: ${formatDate(weekStart)} - ${endDateStr}`;
