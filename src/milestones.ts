@@ -86,6 +86,11 @@ export async function milestones(): Promise<void> {
     for (const m of existing) {
       if (m.due_on) {
         const dateKey = m.due_on.slice(0, 10);
+        if (existingMap.has(dateKey)) {
+          p.log.warn(
+            `Duplicate due_on date ${dateKey}: milestone #${m.number} ("${m.title}") overwrites #${existingMap.get(dateKey)}`,
+          );
+        }
         existingMap.set(dateKey, m.number);
       }
     }
@@ -110,6 +115,7 @@ export async function milestones(): Promise<void> {
   let created = 0;
   let updated = 0;
   let failed = 0;
+  const failures: { title: string; error: string }[] = [];
 
   s.start("Creating milestones...");
 
@@ -121,8 +127,8 @@ export async function milestones(): Promise<void> {
     const title = `Week ${weekNum}: ${endDateStr}`;
     const description = `Period: ${formatDate(weekStart)} - ${endDateStr}`;
 
-    // JST 23:59:59 = UTC 14:59:59
-    const dueOn = `${endDateStr}T14:59:59Z`;
+    const dueTime = config?.milestones?.dueTime ?? "14:59:59Z";
+    const dueOn = `${endDateStr}T${dueTime}`;
 
     const existingNumber = existingMap.get(endDateStr);
     s.message(`${existingNumber ? "Updating" : "Creating"}: ${title}`);
@@ -135,13 +141,22 @@ export async function milestones(): Promise<void> {
         await createMilestone(repo, title, description, dueOn);
         created++;
       }
-    } catch {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      failures.push({ title, error: msg });
       failed++;
     }
   }
 
   s.stop("Done.");
 
+  for (const f of failures) {
+    p.log.error(`  ${f.title}: ${f.error}`);
+  }
+
   p.log.info(`Created: ${created} / Updated: ${updated} / Failed: ${failed}`);
+  if (failed > 0) {
+    process.exitCode = 1;
+  }
   p.outro("Milestones complete!");
 }

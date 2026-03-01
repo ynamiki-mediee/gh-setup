@@ -278,19 +278,15 @@ export async function init(): Promise<void> {
   // Step 6: Apply settings
   const tasks: { title: string; task: () => Promise<void> }[] = [];
 
-  if (branchProtectionChoices.length > 0) {
-    tasks.push({
-      title: `Branch protection (${branch})`,
-      task: () => updateBranchProtection(repo, branch, branchProtection),
-    });
-  }
+  tasks.push({
+    title: `Branch protection (${branch})`,
+    task: () => updateBranchProtection(repo, branch, branchProtection),
+  });
 
-  if (repoChoices.length > 0) {
-    tasks.push({
-      title: "Repository settings",
-      task: () => updateRepoSettings(repo, repoSettings),
-    });
-  }
+  tasks.push({
+    title: "Repository settings",
+    task: () => updateRepoSettings(repo, repoSettings),
+  });
 
   if (securitySettings.dependabotAlerts) {
     tasks.push({

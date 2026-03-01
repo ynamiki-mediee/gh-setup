@@ -97,6 +97,7 @@ export async function labels(): Promise<void> {
   let createdCount = 0;
   let updatedCount = 0;
   let failedCount = 0;
+  const failures: { name: string; error: string }[] = [];
 
   s.start("Syncing labels...");
 
@@ -110,7 +111,9 @@ export async function labels(): Promise<void> {
         l.description ?? "",
       );
       createdCount++;
-    } catch {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      failures.push({ name: l.name, error: msg });
       failedCount++;
     }
   }
@@ -125,15 +128,24 @@ export async function labels(): Promise<void> {
         l.description ?? "",
       );
       updatedCount++;
-    } catch {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      failures.push({ name: l.name, error: msg });
       failedCount++;
     }
   }
 
   s.stop("Done.");
 
+  for (const f of failures) {
+    p.log.error(`  ${f.name}: ${f.error}`);
+  }
+
   p.log.info(
     `Created: ${createdCount} / Updated: ${updatedCount} / Failed: ${failedCount}`,
   );
+  if (failedCount > 0) {
+    process.exitCode = 1;
+  }
   p.outro("Labels complete!");
 }

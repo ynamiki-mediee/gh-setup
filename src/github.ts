@@ -16,7 +16,7 @@ async function ghApi(
   ];
 
   if (options?.paginate) {
-    args.splice(1, 0, "--paginate");
+    args.splice(1, 0, "--paginate", "--slurp");
   }
 
   if (body) {
@@ -27,7 +27,7 @@ async function ghApi(
     const child = execFile(
       "gh",
       args,
-      { encoding: "utf-8" },
+      { encoding: "utf-8", maxBuffer: 10 * 1024 * 1024 },
       (error, stdout, stderr) => {
         if (error) {
           reject(new Error(stderr?.trim() || error.message));
@@ -38,6 +38,7 @@ async function ghApi(
     );
 
     if (body && child.stdin) {
+      child.stdin.on("error", () => {});
       child.stdin.end(JSON.stringify(body));
     }
   });
@@ -119,7 +120,7 @@ export async function updateBranchProtection(
     allow_fork_syncing: false,
   };
 
-  await ghApi("PUT", `/repos/${repo}/branches/${branch}/protection`, body);
+  await ghApi("PUT", `/repos/${repo}/branches/${encodeURIComponent(branch)}/protection`, body);
 }
 
 export async function updateRepoSettings(

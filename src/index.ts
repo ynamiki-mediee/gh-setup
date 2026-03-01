@@ -42,5 +42,8 @@ switch (subcommand) {
     break;
   default:
     showHelp();
+    if (subcommand && subcommand !== "--help") {
+      process.exitCode = 1;
+    }
     break;
 }
