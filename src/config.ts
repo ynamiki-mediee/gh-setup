@@ -35,6 +35,22 @@ export function loadConfig(): GhSetupConfig | undefined {
       return undefined;
     }
 
+    if (Array.isArray(parsed.labels)) {
+      for (const label of parsed.labels) {
+        if (
+          typeof label !== "object" ||
+          label == null ||
+          typeof label.name !== "string" ||
+          typeof label.color !== "string"
+        ) {
+          p.log.warn(
+            "Invalid config: each label must have a string 'name' and 'color'.",
+          );
+          return undefined;
+        }
+      }
+    }
+
     // Validate milestones field if present
     if ("milestones" in parsed && parsed.milestones != null) {
       const ms = parsed.milestones;
@@ -51,7 +67,17 @@ export function loadConfig(): GhSetupConfig | undefined {
     }
 
     return parsed as GhSetupConfig;
-  } catch {
+  } catch (e: unknown) {
+    if (
+      e instanceof Error &&
+      "code" in e &&
+      (e as NodeJS.ErrnoException).code === "ENOENT"
+    ) {
+      return undefined;
+    }
+    p.log.warn(
+      `Failed to load .gh-setup.yml: ${e instanceof Error ? e.message : String(e)}`,
+    );
     return undefined;
   }
 }

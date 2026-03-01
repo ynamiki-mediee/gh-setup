@@ -41,7 +41,6 @@ export async function init(): Promise<void> {
   const preflightResult = await preflight();
   if (!preflightResult) {
     p.outro("Setup cancelled.");
-    process.exitCode = 1;
     return;
   }
 
@@ -220,45 +219,45 @@ export async function init(): Promise<void> {
     `Branch protection (${branch}):`,
   ];
 
+  const branchProtectionLabels: Record<BranchProtectionOption, string> = {
+    blockDirectPushes: "Block direct pushes",
+    requirePrReviews: `Require PR reviews (${requiredApprovals} approval${requiredApprovals > 1 ? "s" : ""})`,
+    requireStatusChecks: "Require status checks",
+    requireConversationResolution: "Require conversation resolution",
+    enforceAdmins: "Enforce for admins",
+    allowForcePushes: "Allow force pushes",
+    blockDeletion: "Block branch deletion",
+  };
   for (const opt of branchProtectionChoices) {
-    const labels: Record<BranchProtectionOption, string> = {
-      blockDirectPushes: "Block direct pushes",
-      requirePrReviews: `Require PR reviews (${requiredApprovals} approval${requiredApprovals > 1 ? "s" : ""})`,
-      requireStatusChecks: "Require status checks",
-      requireConversationResolution: "Require conversation resolution",
-      enforceAdmins: "Enforce for admins",
-      allowForcePushes: "Allow force pushes",
-      blockDeletion: "Block branch deletion",
-    };
-    summaryLines.push(`  + ${labels[opt]}`);
+    summaryLines.push(`  + ${branchProtectionLabels[opt]}`);
   }
   if (branchProtectionChoices.length === 0) {
     summaryLines.push("  (none)");
   }
 
+  const repoLabels: Record<RepoOption, string> = {
+    deleteBranchOnMerge: "Auto-delete branches after merge",
+    allowSquashMerge: "Allow squash merge",
+    allowMergeCommit: "Allow merge commit",
+    allowRebaseMerge: "Allow rebase merge",
+  };
   summaryLines.push("", "Repository settings:");
   for (const opt of repoChoices) {
-    const labels: Record<RepoOption, string> = {
-      deleteBranchOnMerge: "Auto-delete branches after merge",
-      allowSquashMerge: "Allow squash merge",
-      allowMergeCommit: "Allow merge commit",
-      allowRebaseMerge: "Allow rebase merge",
-    };
-    summaryLines.push(`  + ${labels[opt]}`);
+    summaryLines.push(`  + ${repoLabels[opt]}`);
   }
   if (repoChoices.length === 0) {
     summaryLines.push("  (none)");
   }
 
+  const securityLabels: Record<SecurityOption, string> = {
+    dependabotAlerts: "Dependabot alerts",
+    dependabotSecurityUpdates: "Dependabot security updates",
+    secretScanning: "Secret scanning",
+    secretScanningPushProtection: "Secret scanning push protection",
+  };
   summaryLines.push("", "Security:");
   for (const opt of securityChoices) {
-    const labels: Record<SecurityOption, string> = {
-      dependabotAlerts: "Dependabot alerts",
-      dependabotSecurityUpdates: "Dependabot security updates",
-      secretScanning: "Secret scanning",
-      secretScanningPushProtection: "Secret scanning push protection",
-    };
-    summaryLines.push(`  + ${labels[opt]}`);
+    summaryLines.push(`  + ${securityLabels[opt]}`);
   }
   if (securityChoices.length === 0) {
     summaryLines.push("  (none)");
@@ -314,11 +313,6 @@ export async function init(): Promise<void> {
       title: "Secret scanning push protection",
       task: () => enableSecretScanningPushProtection(repo),
     });
-  }
-
-  if (tasks.length === 0) {
-    p.outro("No settings to apply.");
-    return;
   }
 
   const s = p.spinner();

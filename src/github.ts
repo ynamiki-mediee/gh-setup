@@ -23,7 +23,7 @@ async function ghApi(
     args.push("--input", "-");
   }
 
-  return new Promise((resolve, reject) => {
+  const raw: string = await new Promise((resolve, reject) => {
     const child = execFile(
       "gh",
       args,
@@ -38,10 +38,22 @@ async function ghApi(
     );
 
     if (body && child.stdin) {
+      // Ignore EPIPE errors when the child process closes stdin early
       child.stdin.on("error", () => {});
       child.stdin.end(JSON.stringify(body));
     }
   });
+
+  // --paginate --slurp wraps each page in an outer array: [[page1...], [page2...]]
+  // Flatten so callers get a single flat array.
+  if (options?.paginate && raw.length > 0) {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0 && Array.isArray(parsed[0])) {
+      return JSON.stringify(parsed.flat());
+    }
+  }
+
+  return raw;
 }
 
 // --- Types ---
