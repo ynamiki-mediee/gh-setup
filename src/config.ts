@@ -11,7 +11,7 @@ export interface LabelConfig {
 export interface MilestonesConfig {
   startDate: string;
   weeks: number;
-  dueTime?: string; // e.g. "14:59:59Z" for JST 23:59:59
+  timezone?: string; // IANA timezone name (e.g. "Asia/Tokyo")
 }
 
 export interface GhSetupConfig {
@@ -62,6 +62,10 @@ export function loadConfig(): GhSetupConfig | undefined {
         p.log.warn(
           "Invalid config: 'milestones' must have a string 'startDate' and a number 'weeks'.",
         );
+        return undefined;
+      }
+      if (ms.timezone != null && typeof ms.timezone !== "string") {
+        p.log.warn("Invalid config: 'timezone' must be a string.");
         return undefined;
       }
     }

@@ -51,7 +51,7 @@ npx gh-setup milestones
 - Detects existing milestones by due date to avoid duplicates
 - Updates title/description if a milestone with the same due date exists
 - Title format: `Week {n}: {end_date}` (Saturday)
-- Due date timezone: JST 23:59:59 (UTC 14:59:59)
+- Due date: Saturday 23:59:59 in configured timezone (auto-converted to UTC)
 
 ### `labels`
 
@@ -74,6 +74,7 @@ Place a `.gh-setup.yml` in your repository root for declarative configuration:
 milestones:
   startDate: "2026-01-04"   # First Sunday (YYYY-MM-DD)
   weeks: 52                  # Number of weekly milestones
+  timezone: "Asia/Tokyo"     # IANA timezone (due = Saturday 23:59:59 in this TZ)
 
 labels:
   - name: "bug"
