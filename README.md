@@ -2,7 +2,7 @@
 
 Interactive CLI for GitHub repository setup — branch protection, milestones, labels & more.
 
-![gh-setup preview](gh-setup-preview.gif)
+![gh-setup preview](preview.gif)
 
 ## How to use
 
