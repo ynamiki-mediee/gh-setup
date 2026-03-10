@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-// NextMonday returns the next Monday from today as "YYYY-MM-DD".
-// If today is Monday, it returns the following Monday (always in the future).
-func NextMonday() string {
-	today := time.Now()
+// NextMonday returns the next Monday from the given time as "YYYY-MM-DD".
+// If now is Monday, it returns the following Monday (always in the future).
+func NextMonday(now time.Time) string {
+	today := now
 	daysUntilMonday := (int(time.Monday) - int(today.Weekday()) + 7) % 7
 	if daysUntilMonday == 0 {
 		daysUntilMonday = 7
@@ -20,18 +20,18 @@ func NextMonday() string {
 
 // WeeksUntilEndOfYear calculates the number of weeks from startDate to Dec 31
 // of that year. Returns max(1, ceil(diffDays / 7)).
-func WeeksUntilEndOfYear(startDate string) int {
+func WeeksUntilEndOfYear(startDate string) (int, error) {
 	t, err := time.Parse("2006-01-02", startDate)
 	if err != nil {
-		return 1
+		return 0, fmt.Errorf("invalid start date %q: %w", startDate, err)
 	}
 	endOfYear := time.Date(t.Year(), 12, 31, 0, 0, 0, 0, time.UTC)
 	diffDays := endOfYear.Sub(t).Hours() / 24
 	weeks := int(math.Ceil(diffDays / 7))
 	if weeks < 1 {
-		return 1
+		return 1, nil
 	}
-	return weeks
+	return weeks, nil
 }
 
 // ISOWeek returns the ISO 8601 week number for the given date.

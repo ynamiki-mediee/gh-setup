@@ -51,7 +51,7 @@ gh setup milestones
 - Updates title/description if a milestone with the same due date exists
 - Title format: `Week {n}: {end_date}` (Sunday)
 - Due date: Sunday 23:59:59 in configured timezone (auto-converted to UTC)
-- Week numbers use ISO 8601 (`time.ISOWeek()`)
+- Week numbers use ISO 8601 week numbering
 
 ### `labels`
 

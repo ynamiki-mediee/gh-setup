@@ -1,2 +1,4 @@
 gh-setup
+*.exe
 dist/
+tmp/

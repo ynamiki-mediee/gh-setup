@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -20,16 +20,6 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 }
 
-// contains reports whether s is present in the slice.
-func contains(slice []string, s string) bool {
-	for _, v := range slice {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 // task represents a single apply operation with a title and function.
 type task struct {
 	title string
@@ -38,15 +28,14 @@ type task struct {
 
 func runInit(cmd *cobra.Command, args []string) error {
 	// --- Step 1: Repo detection ---
-	detected, err := gh.DetectRepo()
+	detected, host, err := gh.DetectRepo()
 	if err != nil {
 		return err
 	}
 
 	repo, err := prompt.ConfirmRepo(detected)
 	if err != nil {
-		if errors.Is(err, prompt.ErrCancelled) {
-			fmt.Println("Setup cancelled.")
+		if handleCancel(err) {
 			return nil
 		}
 		return err
@@ -54,7 +43,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Repository: %s\n\n", repo)
 
 	// --- Step 2: Branch protection ---
-	client, err := gh.NewClient()
+	client, err := gh.NewClient(host)
 	if err != nil {
 		return err
 	}
@@ -66,8 +55,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	branch, err := prompt.TextInput("Branch to protect", "main", defaultBranch)
 	if err != nil {
-		if errors.Is(err, prompt.ErrCancelled) {
-			fmt.Println("Setup cancelled.")
+		if handleCancel(err) {
 			return nil
 		}
 		return err
@@ -89,35 +77,36 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	branchRules, err := prompt.MultiSelect("Branch protection rules", branchProtectionOptions, branchProtectionDefaults)
 	if err != nil {
-		if errors.Is(err, prompt.ErrCancelled) {
-			fmt.Println("Setup cancelled.")
+		if handleCancel(err) {
 			return nil
 		}
 		return err
 	}
 
 	requiredApprovals := 0
-	if contains(branchRules, "Require PR reviews") {
+	if slices.Contains(branchRules, "Require PR reviews") {
 		approvalStr, err := prompt.Select("Required approvals", []string{"1", "2", "3"})
 		if err != nil {
-			if errors.Is(err, prompt.ErrCancelled) {
-				fmt.Println("Setup cancelled.")
+			if handleCancel(err) {
 				return nil
 			}
 			return err
 		}
-		requiredApprovals, _ = strconv.Atoi(approvalStr)
+		requiredApprovals, err = strconv.Atoi(approvalStr)
+		if err != nil {
+			return fmt.Errorf("invalid approval count %q: %w", approvalStr, err)
+		}
 	}
 
 	branchProtection := gh.BranchProtectionSettings{
-		BlockDirectPushes:             contains(branchRules, "Block direct pushes"),
-		RequirePrReviews:              contains(branchRules, "Require PR reviews"),
+		BlockDirectPushes:             slices.Contains(branchRules, "Block direct pushes"),
+		RequirePrReviews:              slices.Contains(branchRules, "Require PR reviews"),
 		RequiredApprovals:             requiredApprovals,
-		RequireStatusChecks:           contains(branchRules, "Require status checks"),
-		RequireConversationResolution: contains(branchRules, "Require conversation resolution"),
-		EnforceAdmins:                 contains(branchRules, "Enforce for admins"),
-		AllowForcePushes:              contains(branchRules, "Allow force pushes"),
-		BlockDeletion:                 contains(branchRules, "Block branch deletion"),
+		RequireStatusChecks:           slices.Contains(branchRules, "Require status checks"),
+		RequireConversationResolution: slices.Contains(branchRules, "Require conversation resolution"),
+		EnforceAdmins:                 slices.Contains(branchRules, "Enforce for admins"),
+		AllowForcePushes:              slices.Contains(branchRules, "Allow force pushes"),
+		BlockDeletion:                 slices.Contains(branchRules, "Block branch deletion"),
 	}
 
 	// --- Step 3: Repository settings ---
@@ -134,39 +123,37 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	repoSettingsSelected, err := prompt.MultiSelect("Repository settings", repoSettingsOptions, repoSettingsDefaults)
 	if err != nil {
-		if errors.Is(err, prompt.ErrCancelled) {
-			fmt.Println("Setup cancelled.")
+		if handleCancel(err) {
 			return nil
 		}
 		return err
 	}
 
 	// Check if any merge strategy is selected.
-	hasMergeStrategy := contains(repoSettingsSelected, "Allow squash merge") ||
-		contains(repoSettingsSelected, "Allow merge commit") ||
-		contains(repoSettingsSelected, "Allow rebase merge")
+	hasMergeStrategy := slices.Contains(repoSettingsSelected, "Allow squash merge") ||
+		slices.Contains(repoSettingsSelected, "Allow merge commit") ||
+		slices.Contains(repoSettingsSelected, "Allow rebase merge")
 
 	if !hasMergeStrategy {
-		fmt.Println("No merge strategy selected \u2014 PRs cannot be merged.")
+		fmt.Println("No merge strategy selected — PRs cannot be merged.")
 		ok, err := prompt.Confirm("Continue anyway?")
 		if err != nil {
-			if errors.Is(err, prompt.ErrCancelled) {
-				fmt.Println("Setup cancelled.")
+			if handleCancel(err) {
 				return nil
 			}
 			return err
 		}
 		if !ok {
-			fmt.Println("Setup cancelled.")
+			fmt.Println("Cancelled.")
 			return nil
 		}
 	}
 
 	repoSettings := gh.RepoSettings{
-		DeleteBranchOnMerge: contains(repoSettingsSelected, "Auto-delete branches after merge"),
-		AllowSquashMerge:    contains(repoSettingsSelected, "Allow squash merge"),
-		AllowMergeCommit:    contains(repoSettingsSelected, "Allow merge commit"),
-		AllowRebaseMerge:    contains(repoSettingsSelected, "Allow rebase merge"),
+		DeleteBranchOnMerge: slices.Contains(repoSettingsSelected, "Auto-delete branches after merge"),
+		AllowSquashMerge:    slices.Contains(repoSettingsSelected, "Allow squash merge"),
+		AllowMergeCommit:    slices.Contains(repoSettingsSelected, "Allow merge commit"),
+		AllowRebaseMerge:    slices.Contains(repoSettingsSelected, "Allow rebase merge"),
 	}
 
 	// --- Step 4: Security ---
@@ -182,18 +169,17 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	securitySelected, err := prompt.MultiSelect("Security features", securityOptions, securityDefaults)
 	if err != nil {
-		if errors.Is(err, prompt.ErrCancelled) {
-			fmt.Println("Setup cancelled.")
+		if handleCancel(err) {
 			return nil
 		}
 		return err
 	}
 
 	security := gh.SecuritySettings{
-		DependabotAlerts:             contains(securitySelected, "Dependabot alerts"),
-		DependabotSecurityUpdates:    contains(securitySelected, "Dependabot security updates"),
-		SecretScanning:               contains(securitySelected, "Secret scanning"),
-		SecretScanningPushProtection: contains(securitySelected, "Secret scanning push protection"),
+		DependabotAlerts:             slices.Contains(securitySelected, "Dependabot alerts"),
+		DependabotSecurityUpdates:    slices.Contains(securitySelected, "Dependabot security updates"),
+		SecretScanning:               slices.Contains(securitySelected, "Secret scanning"),
+		SecretScanningPushProtection: slices.Contains(securitySelected, "Secret scanning push protection"),
 	}
 
 	// --- Step 5: Summary + Confirmation ---
@@ -205,7 +191,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	for _, rule := range branchRules {
 		fmt.Printf("  + %s\n", rule)
 	}
-	if contains(branchRules, "Require PR reviews") {
+	if slices.Contains(branchRules, "Require PR reviews") {
 		fmt.Printf("  + Required approvals: %d\n", requiredApprovals)
 	}
 
@@ -222,14 +208,13 @@ func runInit(cmd *cobra.Command, args []string) error {
 
 	ok, err := prompt.Confirm("Apply these settings?")
 	if err != nil {
-		if errors.Is(err, prompt.ErrCancelled) {
-			fmt.Println("Setup cancelled.")
+		if handleCancel(err) {
 			return nil
 		}
 		return err
 	}
 	if !ok {
-		fmt.Println("Setup cancelled.")
+		fmt.Println("Cancelled.")
 		return nil
 	}
 
@@ -279,10 +264,10 @@ func runInit(cmd *cobra.Command, args []string) error {
 	for _, t := range tasks {
 		fmt.Printf("Applying: %s...\n", t.title)
 		if err := t.fn(); err != nil {
-			fmt.Printf("\u2717 %s: %v\n", t.title, err)
+			fmt.Printf("✗ %s: %v\n", t.title, err)
 			failed++
 		} else {
-			fmt.Printf("\u2713 %s\n", t.title)
+			fmt.Printf("✓ %s\n", t.title)
 			succeeded++
 		}
 	}

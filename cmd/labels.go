@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -23,15 +22,14 @@ func init() {
 }
 
 func runLabels(cmd *cobra.Command, args []string) error {
-	detected, err := gh.DetectRepo()
+	detected, host, err := gh.DetectRepo()
 	if err != nil {
 		return err
 	}
 
 	repo, err := prompt.ConfirmRepo(detected)
 	if err != nil {
-		if errors.Is(err, prompt.ErrCancelled) {
-			fmt.Println("Cancelled.")
+		if handleCancel(err) {
 			return nil
 		}
 		return err
@@ -45,12 +43,12 @@ func runLabels(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("No labels defined in .gh-setup.yml")
 	}
 
-	client, err := gh.NewClient()
+	client, err := gh.NewClient(host)
 	if err != nil {
 		return err
 	}
 
-	existingGH, err := client.ListLabels(repo)
+	existing, err := client.ListLabels(repo)
 	if err != nil {
 		return err
 	}
@@ -58,15 +56,6 @@ func runLabels(cmd *cobra.Command, args []string) error {
 	desired := make([]label.Label, len(cfg.Labels))
 	for i, l := range cfg.Labels {
 		desired[i] = label.Label{
-			Name:        l.Name,
-			Color:       l.Color,
-			Description: l.Description,
-		}
-	}
-
-	existing := make([]label.Label, len(existingGH))
-	for i, l := range existingGH {
-		existing[i] = label.Label{
 			Name:        l.Name,
 			Color:       l.Color,
 			Description: l.Description,
@@ -96,8 +85,7 @@ func runLabels(cmd *cobra.Command, args []string) error {
 
 	ok, err := prompt.Confirm("Apply these changes?")
 	if err != nil {
-		if errors.Is(err, prompt.ErrCancelled) {
-			fmt.Println("Cancelled.")
+		if handleCancel(err) {
 			return nil
 		}
 		return err

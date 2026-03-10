@@ -4,9 +4,9 @@ import "strings"
 
 // Label represents a GitHub label.
 type Label struct {
-	Name        string
-	Color       string
-	Description string
+	Name        string `json:"name"`
+	Color       string `json:"color"`
+	Description string `json:"description"`
 }
 
 // DiffResult holds the outcome of comparing desired labels against existing ones.
@@ -36,7 +36,7 @@ func ComputeDiff(desired []Label, existing []Label) DiffResult {
 			continue
 		}
 
-		if labelsEqual(d, e) {
+		if labelAttrsEqual(d, e) {
 			result.Unchanged++
 		} else {
 			result.ToUpdate = append(result.ToUpdate, d)
@@ -51,7 +51,7 @@ func normalizeColor(c string) string {
 	return strings.ToLower(strings.TrimPrefix(c, "#"))
 }
 
-func labelsEqual(a, b Label) bool {
+func labelAttrsEqual(a, b Label) bool {
 	if normalizeColor(a.Color) != normalizeColor(b.Color) {
 		return false
 	}

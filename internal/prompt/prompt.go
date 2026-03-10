@@ -138,7 +138,7 @@ func ConfirmRepo(detected string) (string, error) {
 		return "", err
 	}
 	repo = strings.TrimSpace(repo)
-	if !strings.Contains(repo, "/") || strings.Count(repo, "/") != 1 {
+	if strings.Count(repo, "/") != 1 {
 		return "", fmt.Errorf("invalid repository format %q: expected owner/repo", repo)
 	}
 	parts := strings.Split(repo, "/")

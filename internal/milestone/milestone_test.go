@@ -1,32 +1,53 @@
 package milestone
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
 
 func TestNextMonday(t *testing.T) {
-	result := NextMonday()
-
-	// Verify format is YYYY-MM-DD
-	parsed, err := time.Parse("2006-01-02", result)
-	if err != nil {
-		t.Fatalf("NextMonday() returned invalid date format: %q, err: %v", result, err)
+	t.Parallel()
+	tests := []struct {
+		name string
+		now  time.Time
+		want string
+	}{
+		{
+			name: "Wednesday returns next Monday",
+			now:  time.Date(2026, 3, 11, 12, 0, 0, 0, time.UTC), // Wednesday
+			want: "2026-03-16",
+		},
+		{
+			name: "Monday returns following Monday",
+			now:  time.Date(2026, 3, 16, 0, 0, 0, 0, time.UTC), // Monday
+			want: "2026-03-23",
+		},
+		{
+			name: "Sunday returns next day Monday",
+			now:  time.Date(2026, 3, 15, 23, 59, 0, 0, time.UTC), // Sunday
+			want: "2026-03-16",
+		},
+		{
+			name: "Saturday returns Monday in 2 days",
+			now:  time.Date(2026, 3, 14, 0, 0, 0, 0, time.UTC), // Saturday
+			want: "2026-03-16",
+		},
 	}
 
-	// Verify it's a Monday
-	if parsed.Weekday() != time.Monday {
-		t.Errorf("NextMonday() = %q, weekday = %v, want Monday", result, parsed.Weekday())
-	}
-
-	// Verify it's in the future
-	today := time.Now().Truncate(24 * time.Hour)
-	if !parsed.After(today) {
-		t.Errorf("NextMonday() = %q, want a date after today %v", result, today.Format("2006-01-02"))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := NextMonday(tt.now)
+			if got != tt.want {
+				t.Errorf("NextMonday(%v) = %q, want %q", tt.now.Format("2006-01-02"), got, tt.want)
+			}
+		})
 	}
 }
 
 func TestWeeksUntilEndOfYear(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name      string
 		startDate string
@@ -47,19 +68,40 @@ func TestWeeksUntilEndOfYear(t *testing.T) {
 			startDate: "2026-07-01",
 			want:      27,
 		},
+		{
+			name:      "start at Dec 31 returns 1",
+			startDate: "2026-12-31",
+			want:      1,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := WeeksUntilEndOfYear(tt.startDate)
+			t.Parallel()
+			got, err := WeeksUntilEndOfYear(tt.startDate)
+			if err != nil {
+				t.Fatalf("WeeksUntilEndOfYear(%q) unexpected error: %v", tt.startDate, err)
+			}
 			if got != tt.want {
 				t.Errorf("WeeksUntilEndOfYear(%q) = %d, want %d", tt.startDate, got, tt.want)
 			}
 		})
 	}
+
+	t.Run("invalid date returns error", func(t *testing.T) {
+		t.Parallel()
+		_, err := WeeksUntilEndOfYear("not-a-date")
+		if err == nil {
+			t.Fatal("WeeksUntilEndOfYear(\"not-a-date\") expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "invalid start date") {
+			t.Errorf("error = %q, want it to contain %q", err, "invalid start date")
+		}
+	})
 }
 
 func TestISOWeek(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name string
 		date time.Time
@@ -84,6 +126,7 @@ func TestISOWeek(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got := ISOWeek(tt.date)
 			if got != tt.want {
 				t.Errorf("ISOWeek(%v) = %d, want %d", tt.date.Format("2006-01-02"), got, tt.want)
@@ -93,6 +136,7 @@ func TestISOWeek(t *testing.T) {
 }
 
 func TestToUtcDueOn(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		dateStr  string
@@ -119,6 +163,18 @@ func TestToUtcDueOn(t *testing.T) {
 			want:     "2026-01-05T04:59:59Z",
 		},
 		{
+			name:     "America/New_York UTC-4 summer DST",
+			dateStr:  "2026-07-04",
+			timezone: "America/New_York",
+			want:     "2026-07-05T03:59:59Z",
+		},
+		{
+			name:     "empty timezone treated as UTC",
+			dateStr:  "2026-01-04",
+			timezone: "",
+			want:     "2026-01-04T23:59:59Z",
+		},
+		{
 			name:     "invalid timezone",
 			dateStr:  "2026-01-04",
 			timezone: "Invalid/Timezone",
@@ -128,6 +184,7 @@ func TestToUtcDueOn(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := ToUtcDueOn(tt.dateStr, tt.timezone)
 			if tt.wantErr {
 				if err == nil {

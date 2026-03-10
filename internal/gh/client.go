@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	ghAPI "github.com/cli/go-gh/v2/pkg/api"
+	"github.com/ynamiki-mediee/gh-setup/internal/label"
 )
 
 // Client wraps a go-gh REST client for GitHub API access.
@@ -14,9 +15,16 @@ type Client struct {
 	client *ghAPI.RESTClient
 }
 
-// NewClient creates a new Client using the default authenticated REST client.
-func NewClient() (*Client, error) {
-	client, err := ghAPI.DefaultRESTClient()
+// NewClient creates a new Client using the authenticated REST client.
+// If host is non-empty, the client targets that specific GitHub host (e.g. GHE).
+func NewClient(host string) (*Client, error) {
+	var client *ghAPI.RESTClient
+	var err error
+	if host != "" {
+		client, err = ghAPI.NewRESTClient(ghAPI.ClientOptions{Host: host})
+	} else {
+		client, err = ghAPI.DefaultRESTClient()
+	}
 	if err != nil {
 		return nil, fmt.Errorf("creating GitHub API client: %w", err)
 	}
@@ -27,7 +35,7 @@ func NewClient() (*Client, error) {
 func jsonBody(v any) (*bytes.Reader, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("encoding JSON body: %w", err)
 	}
 	return bytes.NewReader(b), nil
 }
@@ -69,13 +77,6 @@ type Milestone struct {
 	Description string `json:"description"`
 	DueOn       string `json:"due_on"`
 	State       string `json:"state"`
-}
-
-// Label represents a GitHub label.
-type Label struct {
-	Name        string `json:"name"`
-	Color       string `json:"color"`
-	Description string `json:"description"`
 }
 
 // --- Repo ---
@@ -220,6 +221,9 @@ func (c *Client) ListMilestones(repo string) ([]Milestone, error) {
 
 // CreateMilestone creates a new milestone.
 func (c *Client) CreateMilestone(repo string, title, description, dueOn string) error {
+	if dueOn == "" {
+		return fmt.Errorf("due_on must not be empty")
+	}
 	body, err := jsonBody(map[string]string{
 		"title":       title,
 		"description": description,
@@ -232,10 +236,14 @@ func (c *Client) CreateMilestone(repo string, title, description, dueOn string) 
 }
 
 // UpdateMilestone updates an existing milestone.
-func (c *Client) UpdateMilestone(repo string, number int, title, description string) error {
+func (c *Client) UpdateMilestone(repo string, number int, title, description, dueOn string) error {
+	if dueOn == "" {
+		return fmt.Errorf("due_on must not be empty")
+	}
 	body, err := jsonBody(map[string]string{
 		"title":       title,
 		"description": description,
+		"due_on":      dueOn,
 	})
 	if err != nil {
 		return err
@@ -246,12 +254,12 @@ func (c *Client) UpdateMilestone(repo string, number int, title, description str
 // --- Labels ---
 
 // ListLabels returns all labels for a repository.
-func (c *Client) ListLabels(repo string) ([]Label, error) {
-	var all []Label
+func (c *Client) ListLabels(repo string) ([]label.Label, error) {
+	var all []label.Label
 	page := 1
 	for {
 		path := fmt.Sprintf("repos/%s/labels?per_page=100&page=%d", repo, page)
-		var batch []Label
+		var batch []label.Label
 		err := c.client.Get(path, &batch)
 		if err != nil {
 			return nil, fmt.Errorf("listing labels: %w", err)

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -37,15 +36,14 @@ var timezoneOptions = []struct{ label, value string }{
 
 func runMilestones(cmd *cobra.Command, args []string) error {
 	// Step 1: Detect and confirm repo
-	detected, err := gh.DetectRepo()
+	detected, host, err := gh.DetectRepo()
 	if err != nil {
 		return err
 	}
 
 	repo, err := prompt.ConfirmRepo(detected)
 	if err != nil {
-		if errors.Is(err, prompt.ErrCancelled) {
-			fmt.Println("Cancelled.")
+		if handleCancel(err) {
 			return nil
 		}
 		return err
@@ -70,20 +68,22 @@ func runMilestones(cmd *cobra.Command, args []string) error {
 		}
 	} else {
 		// Interactive prompts
-		startDate, err = prompt.TextInput("Start date (YYYY-MM-DD):", "", milestone.NextMonday())
+		startDate, err = prompt.TextInput("Start date (YYYY-MM-DD):", "", milestone.NextMonday(time.Now()))
 		if err != nil {
-			if errors.Is(err, prompt.ErrCancelled) {
-				fmt.Println("Cancelled.")
+			if handleCancel(err) {
 				return nil
 			}
 			return err
 		}
 
-		weeksDefault := strconv.Itoa(milestone.WeeksUntilEndOfYear(startDate))
+		weeksUntilEnd, err := milestone.WeeksUntilEndOfYear(startDate)
+		if err != nil {
+			return err
+		}
+		weeksDefault := strconv.Itoa(weeksUntilEnd)
 		weeksStr, err := prompt.TextInput("Number of weeks:", "", weeksDefault)
 		if err != nil {
-			if errors.Is(err, prompt.ErrCancelled) {
-				fmt.Println("Cancelled.")
+			if handleCancel(err) {
 				return nil
 			}
 			return err
@@ -111,8 +111,7 @@ func runMilestones(cmd *cobra.Command, args []string) error {
 
 		selected, err := prompt.SelectWithDefault("Timezone for due dates:", labels, defaultLabel)
 		if err != nil {
-			if errors.Is(err, prompt.ErrCancelled) {
-				fmt.Println("Cancelled.")
+			if handleCancel(err) {
 				return nil
 			}
 			return err
@@ -128,7 +127,7 @@ func runMilestones(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 4: Create client and fetch existing milestones
-	client, err := gh.NewClient()
+	client, err := gh.NewClient(host)
 	if err != nil {
 		return err
 	}
@@ -138,23 +137,16 @@ func runMilestones(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Step 5: Build existing map: due_on date (first 10 chars) → milestone number
+	// Step 5: Build existing map: title → milestone number
 	existingMap := make(map[string]int)
 	for _, m := range existing {
-		if len(m.DueOn) >= 10 {
-			dateKey := m.DueOn[:10]
-			if _, dup := existingMap[dateKey]; dup {
-				fmt.Printf("Warning: duplicate due_on date %s found in existing milestones\n", dateKey)
-			}
-			existingMap[dateKey] = m.Number
-		}
+		existingMap[m.Title] = m.Number
 	}
 
 	// Step 6: Confirm
 	ok, err := prompt.Confirm(fmt.Sprintf("Create/update %d weekly milestones starting from %s?", weeks, startDate))
 	if err != nil {
-		if errors.Is(err, prompt.ErrCancelled) {
-			fmt.Println("Cancelled.")
+		if handleCancel(err) {
 			return nil
 		}
 		return err
@@ -193,9 +185,9 @@ func runMilestones(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
-		if num, exists := existingMap[endDateStr]; exists {
+		if num, exists := existingMap[title]; exists {
 			// Update existing milestone
-			if err := client.UpdateMilestone(repo, num, title, description); err != nil {
+			if err := client.UpdateMilestone(repo, num, title, description, dueOn); err != nil {
 				msg := fmt.Sprintf("Failed to update milestone %q: %v", title, err)
 				fmt.Println(msg)
 				failures = append(failures, msg)

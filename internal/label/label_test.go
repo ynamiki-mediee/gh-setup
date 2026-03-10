@@ -3,6 +3,7 @@ package label
 import "testing"
 
 func TestComputeDiff_AllNew(t *testing.T) {
+	t.Parallel()
 	desired := []Label{
 		{Name: "bug", Color: "d73a4a", Description: "Bug report"},
 		{Name: "feature", Color: "0075ca"},
@@ -21,6 +22,7 @@ func TestComputeDiff_AllNew(t *testing.T) {
 }
 
 func TestComputeDiff_AllUnchanged(t *testing.T) {
+	t.Parallel()
 	labels := []Label{
 		{Name: "bug", Color: "d73a4a", Description: "Bug report"},
 		{Name: "feature", Color: "0075ca"},
@@ -39,6 +41,7 @@ func TestComputeDiff_AllUnchanged(t *testing.T) {
 }
 
 func TestComputeDiff_ColorChange(t *testing.T) {
+	t.Parallel()
 	desired := []Label{{Name: "bug", Color: "ff0000"}}
 	existing := []Label{{Name: "bug", Color: "d73a4a"}}
 	result := ComputeDiff(desired, existing)
@@ -52,6 +55,7 @@ func TestComputeDiff_ColorChange(t *testing.T) {
 }
 
 func TestComputeDiff_DescriptionChange(t *testing.T) {
+	t.Parallel()
 	desired := []Label{{Name: "bug", Color: "d73a4a", Description: "Updated desc"}}
 	existing := []Label{{Name: "bug", Color: "d73a4a", Description: "Old desc"}}
 	result := ComputeDiff(desired, existing)
@@ -65,6 +69,7 @@ func TestComputeDiff_DescriptionChange(t *testing.T) {
 }
 
 func TestComputeDiff_CaseInsensitiveMatch(t *testing.T) {
+	t.Parallel()
 	desired := []Label{{Name: "Bug", Color: "d73a4a"}}
 	existing := []Label{{Name: "bug", Color: "d73a4a"}}
 	result := ComputeDiff(desired, existing)
@@ -78,6 +83,7 @@ func TestComputeDiff_CaseInsensitiveMatch(t *testing.T) {
 }
 
 func TestComputeDiff_HashPrefixStripped(t *testing.T) {
+	t.Parallel()
 	desired := []Label{{Name: "bug", Color: "#d73a4a"}}
 	existing := []Label{{Name: "bug", Color: "d73a4a"}}
 	result := ComputeDiff(desired, existing)
@@ -90,7 +96,41 @@ func TestComputeDiff_HashPrefixStripped(t *testing.T) {
 	}
 }
 
+func TestComputeDiff_ColorCaseInsensitive(t *testing.T) {
+	t.Parallel()
+	desired := []Label{{Name: "bug", Color: "D73A4A"}}
+	existing := []Label{{Name: "bug", Color: "d73a4a"}}
+	result := ComputeDiff(desired, existing)
+
+	if len(result.ToUpdate) != 0 {
+		t.Errorf("ToUpdate = %d, want 0 (color comparison should be case-insensitive)", len(result.ToUpdate))
+	}
+	if result.Unchanged != 1 {
+		t.Errorf("Unchanged = %d, want 1", result.Unchanged)
+	}
+}
+
+func TestComputeDiff_EmptyDesired(t *testing.T) {
+	t.Parallel()
+	existing := []Label{
+		{Name: "bug", Color: "d73a4a"},
+		{Name: "feature", Color: "0075ca"},
+	}
+	result := ComputeDiff(nil, existing)
+
+	if len(result.ToCreate) != 0 {
+		t.Errorf("ToCreate = %d, want 0", len(result.ToCreate))
+	}
+	if len(result.ToUpdate) != 0 {
+		t.Errorf("ToUpdate = %d, want 0", len(result.ToUpdate))
+	}
+	if result.Unchanged != 0 {
+		t.Errorf("Unchanged = %d, want 0", result.Unchanged)
+	}
+}
+
 func TestComputeDiff_Mixed(t *testing.T) {
+	t.Parallel()
 	desired := []Label{
 		{Name: "bug", Color: "d73a4a", Description: "Bug report"},       // unchanged
 		{Name: "feature", Color: "ff0000"},                               // update (color differs)

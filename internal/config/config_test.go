@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -135,6 +136,9 @@ func TestLoadConfig_InvalidYAML(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
 	}
+	if !strings.Contains(err.Error(), "parsing config file") {
+		t.Errorf("error = %q, want it to contain %q", err, "parsing config file")
+	}
 }
 
 func TestLoadConfig_LabelMissingName(t *testing.T) {
@@ -146,6 +150,9 @@ labels:
 	_, err := LoadConfig()
 	if err == nil {
 		t.Fatal("expected error for label missing name")
+	}
+	if !strings.Contains(err.Error(), "name is required") {
+		t.Errorf("error = %q, want it to contain %q", err, "name is required")
 	}
 }
 
@@ -159,6 +166,9 @@ labels:
 	if err == nil {
 		t.Fatal("expected error for label missing color")
 	}
+	if !strings.Contains(err.Error(), "color is required") {
+		t.Errorf("error = %q, want it to contain %q", err, "color is required")
+	}
 }
 
 func TestLoadConfig_MilestonesMissingStartDate(t *testing.T) {
@@ -170,6 +180,9 @@ milestones:
 	_, err := LoadConfig()
 	if err == nil {
 		t.Fatal("expected error for milestones missing startDate")
+	}
+	if !strings.Contains(err.Error(), "startDate is required") {
+		t.Errorf("error = %q, want it to contain %q", err, "startDate is required")
 	}
 }
 
@@ -183,6 +196,25 @@ milestones:
 	if err == nil {
 		t.Fatal("expected error for milestones missing weeks")
 	}
+	if !strings.Contains(err.Error(), "weeks must be a positive integer") {
+		t.Errorf("error = %q, want it to contain %q", err, "weeks must be a positive integer")
+	}
+}
+
+func TestLoadConfig_InvalidStartDateFormat(t *testing.T) {
+	dir := t.TempDir()
+	setupConfigFile(t, dir, `
+milestones:
+  startDate: "01-06-2025"
+  weeks: 4
+`)
+	_, err := LoadConfig()
+	if err == nil {
+		t.Fatal("expected error for invalid startDate format")
+	}
+	if !strings.Contains(err.Error(), "invalid startDate") {
+		t.Errorf("error = %q, want it to contain %q", err, "invalid startDate")
+	}
 }
 
 func TestLoadConfig_EmptyFile(t *testing.T) {
@@ -194,5 +226,17 @@ func TestLoadConfig_EmptyFile(t *testing.T) {
 	}
 	if cfg != nil {
 		t.Error("expected nil config for empty file")
+	}
+}
+
+func TestLoadConfig_WhitespaceOnlyFile(t *testing.T) {
+	dir := t.TempDir()
+	setupConfigFile(t, dir, "  \n  \n")
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg != nil {
+		t.Error("expected nil config for whitespace-only file")
 	}
 }

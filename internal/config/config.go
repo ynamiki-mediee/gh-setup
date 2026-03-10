@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -77,8 +78,16 @@ func validate(cfg *Config) error {
 		if m.StartDate == "" {
 			return fmt.Errorf("milestones: startDate is required")
 		}
-		if m.Weeks == 0 {
-			return fmt.Errorf("milestones: weeks is required")
+		if _, err := time.Parse("2006-01-02", m.StartDate); err != nil {
+			return fmt.Errorf("milestones: invalid startDate %q: must be YYYY-MM-DD", m.StartDate)
+		}
+		if m.Weeks <= 0 {
+			return fmt.Errorf("milestones: weeks must be a positive integer")
+		}
+		if m.Timezone != "" {
+			if _, err := time.LoadLocation(m.Timezone); err != nil {
+				return fmt.Errorf("milestones: invalid timezone %q: %w", m.Timezone, err)
+			}
 		}
 	}
 
