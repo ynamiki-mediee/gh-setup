@@ -1,2 +1,4 @@
-node_modules/
+gh-setup
+*.exe
 dist/
+tmp/

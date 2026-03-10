@@ -1,24 +1,25 @@
 # gh-setup
 
+![preview](preview.gif)
+
 Interactive CLI for GitHub repository setup — branch protection, milestones, labels & more.
 
-![gh-setup preview](preview.gif)
+A [GitHub CLI](https://cli.github.com) extension.
 
-## How to use
+## Installation
 
 ```bash
-npx gh-setup
+gh extension install ynamiki-mediee/gh-setup
 ```
 
 ## Prerequisites
 
 - [GitHub CLI (`gh`)](https://cli.github.com) installed and authenticated
-- Node.js 18+
 
 ## Commands
 
 ```
-gh-setup <command>
+gh setup <command>
 
 Commands:
   init          Repository setup (branch protection, settings, security)
@@ -26,7 +27,7 @@ Commands:
   labels        Sync labels from .gh-setup.yml
 ```
 
-Running `gh-setup` without a command shows the help message.
+Running `gh setup` without a command shows the help message.
 
 ### `init`
 
@@ -37,7 +38,7 @@ Walks you through configuring a GitHub repository interactively:
 3. **Security** — Dependabot alerts, secret scanning, push protection
 
 ```bash
-npx gh-setup init
+gh setup init
 ```
 
 ### `milestones`
@@ -45,20 +46,21 @@ npx gh-setup init
 Creates or updates weekly milestones. Reads configuration from `.gh-setup.yml` or prompts interactively.
 
 ```bash
-npx gh-setup milestones
+gh setup milestones
 ```
 
 - Detects existing milestones by due date to avoid duplicates
 - Updates title/description if a milestone with the same due date exists
 - Title format: `Week {n}: {end_date}` (Sunday)
 - Due date: Sunday 23:59:59 in configured timezone (auto-converted to UTC)
+- Week numbers use ISO 8601 week numbering
 
 ### `labels`
 
 Syncs labels from `.gh-setup.yml` to the repository.
 
 ```bash
-npx gh-setup labels
+gh setup labels
 ```
 
 - Creates missing labels
@@ -93,9 +95,8 @@ The config file is optional — `milestones` falls back to interactive prompts, 
 ## Development
 
 ```bash
-npm install
-npm run build
-node dist/index.js
+go build -o gh-setup .
+gh extension install .
 ```
 
 ## License
