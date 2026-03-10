@@ -48,6 +48,7 @@ func runLabels(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	fmt.Println("Fetching existing labels...")
 	existing, err := client.ListLabels(repo)
 	if err != nil {
 		return err
@@ -98,19 +99,23 @@ func runLabels(cmd *cobra.Command, args []string) error {
 	var created, updated, failed int
 
 	for _, l := range diff.ToCreate {
+		fmt.Printf("Creating: %s...\n", l.Name)
 		if err := client.CreateLabel(repo, l.Name, l.Color, l.Description); err != nil {
-			fmt.Printf("Failed to create %q: %v\n", l.Name, err)
+			fmt.Printf("✗ %s: %v\n", l.Name, err)
 			failed++
 		} else {
+			fmt.Printf("✓ %s\n", l.Name)
 			created++
 		}
 	}
 
 	for _, l := range diff.ToUpdate {
+		fmt.Printf("Updating: %s...\n", l.Name)
 		if err := client.UpdateLabel(repo, l.Name, l.Color, l.Description); err != nil {
-			fmt.Printf("Failed to update %q: %v\n", l.Name, err)
+			fmt.Printf("✗ %s: %v\n", l.Name, err)
 			failed++
 		} else {
+			fmt.Printf("✓ %s\n", l.Name)
 			updated++
 		}
 	}

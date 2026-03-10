@@ -132,6 +132,7 @@ func runMilestones(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	fmt.Println("Fetching existing milestones...")
 	existing, err := client.ListMilestones(repo)
 	if err != nil {
 		return err
@@ -187,22 +188,24 @@ func runMilestones(cmd *cobra.Command, args []string) error {
 
 		if num, exists := existingMap[title]; exists {
 			// Update existing milestone
+			fmt.Printf("Updating: %s...\n", title)
 			if err := client.UpdateMilestone(repo, num, title, description, dueOn); err != nil {
-				msg := fmt.Sprintf("Failed to update milestone %q: %v", title, err)
-				fmt.Println(msg)
-				failures = append(failures, msg)
+				fmt.Printf("✗ %s: %v\n", title, err)
+				failures = append(failures, fmt.Sprintf("Failed to update milestone %q: %v", title, err))
 				failed++
 			} else {
+				fmt.Printf("✓ %s\n", title)
 				updated++
 			}
 		} else {
 			// Create new milestone
+			fmt.Printf("Creating: %s...\n", title)
 			if err := client.CreateMilestone(repo, title, description, dueOn); err != nil {
-				msg := fmt.Sprintf("Failed to create milestone %q: %v", title, err)
-				fmt.Println(msg)
-				failures = append(failures, msg)
+				fmt.Printf("✗ %s: %v\n", title, err)
+				failures = append(failures, fmt.Sprintf("Failed to create milestone %q: %v", title, err))
 				failed++
 			} else {
+				fmt.Printf("✓ %s\n", title)
 				created++
 			}
 		}
