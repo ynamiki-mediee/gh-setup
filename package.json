@@ -1,6 +1,6 @@
 {
   "name": "gh-setup",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Interactive GitHub repository setup CLI — branch protection, milestones, labels & more",
   "type": "module",
   "bin": {
