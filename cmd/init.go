@@ -260,19 +260,24 @@ func runInit(cmd *cobra.Command, args []string) error {
 		})
 	}
 
-	var succeeded, failed int
+	var succeeded, skipped, failed int
 	for _, t := range tasks {
 		fmt.Printf("Applying: %s...\n", t.title)
-		if err := t.fn(); err != nil {
-			fmt.Printf("✗ %s: %v\n", t.title, err)
-			failed++
-		} else {
+		err := t.fn()
+		switch {
+		case err == nil:
 			fmt.Printf("✓ %s\n", t.title)
 			succeeded++
+		case gh.IsPlanRestricted(err):
+			fmt.Printf("- %s: skipped (not available on this repository's plan)\n", t.title)
+			skipped++
+		default:
+			fmt.Printf("✗ %s: %v\n", t.title, err)
+			failed++
 		}
 	}
 
-	fmt.Printf("\nDone: %d succeeded, %d failed.\n", succeeded, failed)
+	fmt.Printf("\nDone: %d succeeded, %d skipped, %d failed.\n", succeeded, skipped, failed)
 
 	if failed > 0 {
 		return fmt.Errorf("%d task(s) failed", failed)
