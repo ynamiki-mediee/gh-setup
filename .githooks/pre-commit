@@ -5,12 +5,17 @@ set -e
 files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$' || true)
 [ -z "$files" ] && exit 0
 
-unformatted=$(gofmt -l $files)
-if [ -n "$unformatted" ]; then
-  echo "gofmt needed on:" >&2
-  echo "$unformatted" >&2
-  echo "Run: gofmt -w <files>" >&2
-  exit 1
-fi
+# Auto-format staged Go files and re-stage them.
+for f in $files; do
+  [ -z "$(gofmt -l "$f")" ] && continue
+  if ! git diff --quiet -- "$f"; then
+    # Partially staged: re-adding would stage unrelated edits.
+    echo "$f needs gofmt but has unstaged changes; run: gofmt -w $f" >&2
+    exit 1
+  fi
+  gofmt -w "$f"
+  git add "$f"
+  echo "gofmt: formatted $f"
+done
 
 go vet ./...
