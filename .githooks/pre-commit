@@ -1,0 +1,31 @@
+#!/bin/bash
+# Lightweight pre-commit checks. Enable with: git config core.hooksPath .githooks
+set -e
+
+# Any staged Go change (including deletions/renames) triggers vet.
+# --no-renames reports a rename as delete + add, so both paths are seen.
+if ! git diff --cached --no-renames --name-only --diff-filter=ACMD | grep -q '\.go$'; then
+  exit 0
+fi
+
+# Auto-format staged Go files (checking the staged content) and re-stage them.
+# NUL-delimited so paths with spaces survive.
+while IFS= read -r -d '' f; do
+  case "$f" in *.go) ;; *) continue ;; esac
+  # Capture gofmt's status separately so a parse error is not masked.
+  if ! out=$(git show ":$f" | gofmt -l); then
+    echo "$f: staged content does not parse (see gofmt error above)" >&2
+    exit 1
+  fi
+  [ -z "$out" ] && continue
+  if ! git diff --quiet -- "$f"; then
+    # Partially staged: re-adding would stage unrelated edits.
+    echo "$f needs gofmt but has unstaged changes; format and re-stage it" >&2
+    exit 1
+  fi
+  gofmt -w "$f"
+  git add "$f"
+  echo "gofmt: formatted $f"
+done < <(git diff --cached --no-renames --name-only -z --diff-filter=ACM)
+
+go vet ./...

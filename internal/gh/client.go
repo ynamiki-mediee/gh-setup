@@ -98,9 +98,9 @@ func (c *Client) GetRepoInfo(repo string) (defaultBranch string, visibility stri
 func (c *Client) UpdateRepoSettings(repo string, s RepoSettings) error {
 	body, err := jsonBody(map[string]any{
 		"delete_branch_on_merge": s.DeleteBranchOnMerge,
-		"allow_squash_merge":    s.AllowSquashMerge,
-		"allow_merge_commit":    s.AllowMergeCommit,
-		"allow_rebase_merge":    s.AllowRebaseMerge,
+		"allow_squash_merge":     s.AllowSquashMerge,
+		"allow_merge_commit":     s.AllowMergeCommit,
+		"allow_rebase_merge":     s.AllowRebaseMerge,
 	})
 	if err != nil {
 		return err
