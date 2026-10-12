@@ -99,6 +99,12 @@ go build -o gh-setup .
 gh extension install .
 ```
 
+Enable the pre-commit hook (gofmt + go vet on staged Go files):
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## License
 
 MIT

@@ -1,0 +1,16 @@
+#!/bin/sh
+# Lightweight pre-commit checks. Enable with: git config core.hooksPath .githooks
+set -e
+
+files=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$' || true)
+[ -z "$files" ] && exit 0
+
+unformatted=$(gofmt -l $files)
+if [ -n "$unformatted" ]; then
+  echo "gofmt needed on:" >&2
+  echo "$unformatted" >&2
+  echo "Run: gofmt -w <files>" >&2
+  exit 1
+fi
+
+go vet ./...
