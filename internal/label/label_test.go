@@ -132,9 +132,9 @@ func TestComputeDiff_EmptyDesired(t *testing.T) {
 func TestComputeDiff_Mixed(t *testing.T) {
 	t.Parallel()
 	desired := []Label{
-		{Name: "bug", Color: "d73a4a", Description: "Bug report"},       // unchanged
-		{Name: "feature", Color: "ff0000"},                               // update (color differs)
-		{Name: "docs", Color: "0075ca", Description: "Documentation"},    // create (new)
+		{Name: "bug", Color: "d73a4a", Description: "Bug report"},     // unchanged
+		{Name: "feature", Color: "ff0000"},                            // update (color differs)
+		{Name: "docs", Color: "0075ca", Description: "Documentation"}, // create (new)
 	}
 	existing := []Label{
 		{Name: "bug", Color: "d73a4a", Description: "Bug report"},
